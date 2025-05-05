@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ocean Times Tables Game</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to bottom, #00bfff, #1e90ff);
+      overflow: hidden;
+      color: white;
+      text-align: center;
+    }
+
+    .bubbles {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+
+    .bubble {
+      position: absolute;
+      bottom: -50px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      animation: rise 10s infinite;
+    }
+
+    @keyframes rise {
+      0% { transform: translateY(0) scale(1); opacity: 1; }
+      100% { transform: translateY(-1000px) scale(0.5); opacity: 0; }
+    }
+
+    .game-container {
+      position: relative;
+      z-index: 1;
+      background: rgba(0, 0, 128, 0.6);
+      border: 3px solid #00BFFF;
+      border-radius: 20px;
+      padding: 2rem;
+      max-width: 500px;
+      margin: 5rem auto;
+      box-shadow: 0 0 20px #00BFFF;
+    }
+
+    h1 { margin-bottom: 0.5rem; }
+
+    .question {
+      font-size: 2rem;
+      margin: 1rem 0;
+    }
+
+    input, select {
+      font-size: 1.5rem;
+      padding: 0.5rem;
+      text-align: center;
+    }
+
+    button {
+      font-size: 1.2rem;
+      padding: 0.5rem 1rem;
+      margin-top: 1rem;
+      background: #00CED1;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .feedback {
+      font-size: 1.3rem;
+      margin-top: 1rem;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: space-between;
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+    }
+
+    .fish {
+      position: absolute;
+      width: 100px;
+      bottom: 100px;
+      left: -120px;
+      transition: left 2s linear;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ocean Bubbles -->
+  <div class="bubbles" id="bubbles"></div>
+
+  <!-- Game UI -->
+  <div class="game-container">
+    <h1>🐠 Ocean Times Tables Game 🌊</h1>
+
+    <div id="start-screen">
+      <p>Select a times table to practice:</p>
+      <select id="timesTableSelect">
+        <option value="" disabled selected>Select a number</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+        <option value="9">9</option>
+        <option value="10">10</option>
+        <option value="11">11</option>
+        <option value="12">12</option>
+      </select>
+      <br><br>
+      <button onclick="startGame()">Start Game</button>
+    </div>
+
+    <div id="game-screen" style="display: none;">
+      <div class="stats">
+        <div>⏱️ Time: <span id="timer">60</span>s</div>
+        <div>🎯 Score: <span id="score">0</span></div>
+        <div>🏅 Level: <span id="level">1</span></div>
+      </div>
+      <div id="question" class="question">Loading...</div>
+      <input type="number" id="answer" />
+      <br>
+      <button onclick="checkAnswer()">Submit</button>
+      <div id="feedback" class="feedback"></div>
+    </div>
+  </div>
+
+  <!-- Fish Animation -->
+  <img src="https://upload.wikimedia.org/wikipedia/commons/6/6e/Fish_icon.png" class="fish" id="fish" alt="fish" />
+
+  <!-- Audio -->
+  <audio id="correctSound" src="https://www.soundjay.com/buttons/sounds/button-10.mp3"></audio>
+  <audio id="wrongSound" src="https://www.soundjay.com/button/sounds/button-3.mp3"></audio>
+
+  <script>
+    const questionEl = document.getElementById('question');
+    const answerEl = document.getElementById('answer');
+    const feedbackEl = document.getElementById('feedback');
+    const timerEl = document.getElementById('timer');
+    const scoreEl = document.getElementById('score');
+    const levelEl = document.getElementById('level');
+    const fish = document.getElementById('fish');
+    const correctSound = document.getElementById('correctSound');
+    const wrongSound = document.getElementById('wrongSound');
+
+    const startScreen = document.getElementById('start-screen');
+    const gameScreen = document.getElementById('game-screen');
+    const timesTableSelect = document.getElementById('timesTableSelect');
+
+    let selectedTable = null;
+    let currentQuestion = {};
+    let score = 0;
+    let level = 1;
+    let timeLeft = 60;
+    let timer;
+
+    function startGame() {
+      selectedTable = parseInt(timesTableSelect.value);
+      if (!selectedTable) return alert("Please select a times table first!");
+
+      startScreen.style.display = 'none';
+      gameScreen.style.display = 'block';
+      score = 0;
+      level = 1;
+      timeLeft = 60;
+      updateStats();
+      generateQuestion();
+      startTimer();
+    }
+
+    function generateQuestion() {
+      const type = Math.random() < 0.5 ? 'multiply' : 'divide';
+      const b = Math.floor(Math.random() * 12) + 1;
+
+      if (type === 'multiply') {
+        currentQuestion = {
+          text: `${selectedTable} × ${b} = ?`,
+          answer: selectedTable * b
+        };
+      } else {
+        currentQuestion = {
+          text: `${selectedTable * b} ÷ ${selectedTable} = ?`,
+          answer: b
+        };
+      }
+
+      questionEl.textContent = currentQuestion.text;
+      answerEl.value = '';
+      feedbackEl.textContent = '';
+    }
+
+    function checkAnswer() {
+      const userAnswer = parseInt(answerEl.value, 10);
+      if (userAnswer === currentQuestion.answer) {
+        feedbackEl.textContent = '✅ Correct!';
+        correctSound.play();
+        animateFish();
+        score++;
+        updateStats();
+      } else {
+        feedbackEl.textContent = `❌ Correct: ${currentQuestion.answer}`;
+        wrongSound.play();
+      }
+
+      setTimeout(generateQuestion, 1500);
+    }
+
+    function animateFish() {
+      fish.style.left = '-120px';
+      setTimeout(() => {
+        fish.style.left = '100%';
+      }, 50);
+    }
+
+    function updateStats() {
+      scoreEl.textContent = score;
+      level = Math.floor(score / 10) + 1;
+      levelEl.textContent = level;
+    }
+
+    function startTimer() {
+      timerEl.textContent = timeLeft;
+      timer = setInterval(() => {
+        timeLeft--;
+        timerEl.textContent = timeLeft;
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          endGame();
+        }
+      }, 1000);
+    }
+
+    function endGame() {
+      questionEl.textContent = '⏰ Time’s up!';
+      feedbackEl.innerHTML = `Final Score: <strong>${score}</strong>`;
+      answerEl.disabled = true;
+      document.querySelector('#game-screen button').disabled = true;
+    }
+
+    function createBubbles(count) {
+      const bubbles = document.getElementById('bubbles');
+      for (let i = 0; i < count; i++) {
+        const bubble = document.createElement('div');
+        const size = Math.random() * 30 + 10;
+        bubble.classList.add('bubble');
+        bubble.style.width = size + 'px';
+        bubble.style.height = size + 'px';
+        bubble.style.left = Math.random() * 100 + '%';
+        bubble.style.animationDuration = (Math.random() * 5 + 5) + 's';
+        bubbles.appendChild(bubble);
+      }
+    }
+
+    createBubbles(30);
+  </script>
+</body>
+</html>
